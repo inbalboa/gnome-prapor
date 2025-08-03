@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.prapor" path="/org/gnome/shell/extensions/prapor/">
+    <key name="hide-system-indicator" type="b">
+      <default>false</default>
+      <summary>Hide a system indicator </summary>
+      <description>Hide a system keyboard layout indicator in the status bar</description>
+    </key>
+  </schema>
+</schemalist>

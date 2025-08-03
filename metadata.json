@@ -1,0 +1,14 @@
+{
+  "uuid": "prapor@inbalboa.github.io",
+  "name": "Prapor - Keyboard Layout Indicator",
+  "description": "Shows the current keyboard layout as a country flag in the top panel",
+  "donations": {
+    "github": "inbalboa"
+  },
+  "gettext-domain": "prapor",
+  "settings-schema": "org.gnome.shell.extensions.prapor",
+  "version": 1,
+  "version-name": "1.1.1",
+  "shell-version": ["48"],
+  "url": "https://github.com/inbalboa/gnome-prapor/"
+}
