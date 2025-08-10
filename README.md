@@ -1,4 +1,5 @@
 # Prapor — Keyboard Layout Indicator for GNOME Shell
+[<img src="https://raw.githubusercontent.com/andyholmes/gnome-shell-extensions-badge/master/get-it-on-ego.svg?sanitize=true" height="100">](https://extensions.gnome.org/extension/8494/prapor-keyboard-layout-indicator/)
 
 A GNOME Shell extension to display the current keyboard layout as a country flag in the top panel, making it easy to see and switch between different keyboard layouts at a glance.
 
@@ -14,6 +15,10 @@ It's like the system GNOME Shell layout indicator, but with flags.
 
 ## Installation
 
+### From GNOME Extensions
+
+https://extensions.gnome.org/extension/8494/prapor-keyboard-layout-indicator/
+
 ### Manual Installation
 
 1. **Download and install the extension files**
@@ -23,6 +28,7 @@ It's like the system GNOME Shell layout indicator, but with flags.
    cd gnome-prapor
    make install
    ```
+   Requires `git`, `make`, `jq`
 
 2. **Restart GNOME Shell**
 
