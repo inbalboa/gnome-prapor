@@ -40,9 +40,17 @@ class LayoutMenuItem extends PopupMenu.PopupBaseMenuItem {
         this.add_child(itemBox);
 
         this.connect('activate', () => {
-            this._parent._getTopMenu().close();
+            this._getTopMenu().close();
             clickCallback();
         });
+    }
+
+    get sourceId() {
+        return this._sourceId;
+    }
+
+    get flagSymbol() {
+        return this._flagSmb;
     }
 
     makeActive() {

@@ -4,15 +4,26 @@ import GObject from 'gi://GObject';
 import St from 'gi://St';
 
 import {Extension, gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
-
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
-import {panel} from 'resource:///org/gnome/shell/ui/main.js';
-
 import {FlagMapper} from './flags.js';
 import {LayoutMenuItem} from './layoutItem.js';
+
+const APP_NAME = 'Prapor';
+const KEYBOARD_VIEWER_CMD = 'tecla';
+
+function logPrapor(message, error = null) {
+    if (error)
+        console.error(`${APP_NAME}: ${message}`, error);
+    else
+        console.debug(`${APP_NAME}: ${message}`);
+}
+
+function notifyPrapor(message) {
+    Main.notify(APP_NAME, message);
+}
 
 const PraporIndicator = GObject.registerClass(
     class PraporIndicator extends PanelMenu.Button {
@@ -20,7 +31,7 @@ const PraporIndicator = GObject.registerClass(
             super._init(0.0, 'PraporIndicator');
 
             this._settings = extension.getSettings();
-            this._keyboard = panel.statusArea.keyboard;
+            this._keyboard = Main.panel.statusArea.keyboard;
             this._keyboardVisibilityChangedId = null;
             this._flagMapper = new FlagMapper();
 
@@ -33,8 +44,8 @@ const PraporIndicator = GObject.registerClass(
 
             this._inputSourceManager = Main.inputMethod._inputSourceManager;
             if (!this._inputSourceManager) {
-                console.error('Prapor: Input source manager not available');
-                Main.notify('Prapor', _('Input source manager not available.'));
+                logPrapor('Initialization error:', 'Input source manager not available');
+                notifyPrapor(_('Input source manager not available.'));
                 this.destroy();
                 return;
             }
@@ -70,19 +81,19 @@ const PraporIndicator = GObject.registerClass(
 
         _refillLayoutItems() {
             const sources = Object.values(this._inputSourceManager.inputSources);
-            let refill = !this._layoutItems || this._layoutItems.length !== sources.length;
-            if (!refill) {
+            let needsRefill = !this._layoutItems || this._layoutItems.length !== sources.length;
+            if (!needsRefill) {
                 for (const source of sources) {
-                    if (this._layoutItems[source.index]._sourceId !== source.id) {
-                        refill = true;
+                    if (this._layoutItems[source.index].sourceId !== source.id) {
+                        needsRefill = true;
                         break;
                     }
                 }
             }
-            if (!refill)
+            if (!needsRefill)
                 return false;
 
-            this._layoutItems = Array.apply(null, Array(sources.length)).map(() => {});
+            this._layoutItems = Array.from({length: sources.length});
             for (const source of sources) {
                 const flagSmb = this._flagMapper.getFlagBySourceId(source.id);
                 const displayName = source.displayName || source.id;
@@ -92,21 +103,21 @@ const PraporIndicator = GObject.registerClass(
         }
 
         _updateLayoutItems() {
-            const currentSource = this._inputSourceManager.currentSource;
-            const isNewLayouts = this._refillLayoutItems();
+            const currentSourceId = this._inputSourceManager.currentSource?.id;
+            const layoutsChanged = this._refillLayoutItems();
 
-            let labelText;
+            let currentFlagSymbolText;
             this._layoutItems.forEach(i => {
-                if (currentSource && i._sourceId === currentSource.id) {
+                if (currentSourceId && i.sourceId === currentSourceId) {
                     i.makeActive();
-                    labelText = i._flagSmb;
+                    currentFlagSymbolText = i.flagSymbol;
                 } else {
                     i.makeInactive();
                 }
             });
-            this._flagLabel.text = labelText || this._flagMapper.getDefault();
+            this._flagLabel.text = currentFlagSymbolText ?? this._flagMapper.getDefault();
 
-            if (isNewLayouts) {
+            if (layoutsChanged) {
                 this._layoutSection.removeAll();
                 this._layoutItems.forEach(i => this._layoutSection.addMenuItem(i));
             }
@@ -118,12 +129,16 @@ const PraporIndicator = GObject.registerClass(
 
         _switchSystemIndicator() {
             if (!this._settings) {
-                console.error('Prapor: settings not available');
+                logPrapor('System indicator switching error:', 'Settings not available');
                 return;
             }
             const hide = this._settings.get_boolean('hide-system-indicator');
             if (hide) {
                 if (this._keyboard) {
+                    if (this._keyboardVisibilityChangedId) {
+                        this._keyboard.disconnect(this._keyboardVisibilityChangedId);
+                        this._keyboardVisibilityChangedId = null;
+                    }
                     this._keyboardVisibilityChangedId = this._keyboard.connect('notify::visible', () => this._keyboard.hide());
                     this._keyboard.hide();
                 }
@@ -138,10 +153,10 @@ const PraporIndicator = GObject.registerClass(
 
         _showKeyboardLayout() {
             try {
-                Gio.Subprocess.new(['tecla'], Gio.SubprocessFlags.NONE);
+                Gio.Subprocess.new([KEYBOARD_VIEWER_CMD], Gio.SubprocessFlags.NONE);
             } catch (e) {
-                console.error('Prapor: could not open keyboard layout viewer:', e);
-                Main.notify('Prapor', _('No keyboard layout viewer found. Install Tecla.'));
+                logPrapor('Could not open keyboard layout viewer:', e);
+                notifyPrapor(_(`No keyboard layout viewer found. Install '${KEYBOARD_VIEWER_CMD}'.`));
             }
         }
 
@@ -149,8 +164,8 @@ const PraporIndicator = GObject.registerClass(
             try {
                 Gio.Subprocess.new(['gnome-control-center', 'keyboard'], Gio.SubprocessFlags.NONE);
             } catch (e) {
-                console.error('Prapor: could not open keyboard settings:', e);
-                Main.notify('Prapor', _('Could not open keyboard settings.'));
+                logPrapor('Could not open keyboard settings:', e);
+                notifyPrapor(_('Could not open keyboard settings.'));
             }
         }
 
@@ -167,7 +182,9 @@ const PraporIndicator = GObject.registerClass(
                 this._keyboard.disconnect(this._keyboardVisibilityChangedId);
                 this._keyboardVisibilityChangedId = null;
             }
-            this._keyboard.show();
+            if (this._keyboard) {
+                this._keyboard.show();
+            }
             super.destroy();
         }
     }
