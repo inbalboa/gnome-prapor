@@ -2,6 +2,7 @@ import Adw from 'gi://Adw';
 import Gdk from 'gi://Gdk';
 import Gtk from 'gi://Gtk';
 import GObject from 'gi://GObject';
+import GLib from 'gi://GLib';
 
 import * as Config from 'resource:///org/gnome/Shell/Extensions/js/misc/config.js';
 import {ExtensionPreferences, gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
@@ -30,16 +31,135 @@ export const SettingsPage = GObject.registerClass(class PraporSettingsPage exten
 
         this._settings = settings;
 
-        const mainGroup = new Adw.PreferencesGroup();
+        const mainGroup = new Adw.PreferencesGroup({
+            title: _('Hiding the system indicator'),
+            description: _('Hide the system indicator not to double information in the status area'),
+        });
         this.add(mainGroup);
 
         const hideRow = new Adw.SwitchRow({
-            title: _('Hide the system indicator'),
-            subtitle: _('Hide the system indicator not to double information in the status area'),
+            title: _('Hide'),
             active: this._settings.get_boolean('hide-system-indicator'),
         });
         hideRow.connect('notify::active', () => this._settings.set_boolean('hide-system-indicator', hideRow.get_active()));
         mainGroup.add(hideRow);
+
+        const customSymbolsGroup = new Adw.PreferencesGroup({
+            title: _('Custom Layout Symbols'),
+            description: _('Set custom symbols for specific keyboard layouts'),
+        });
+        this.add(customSymbolsGroup);
+
+        this._createCustomSymbolsUI(customSymbolsGroup);
+    }
+
+    _createCustomSymbolsUI(group) {
+        const addLayoutRow = new Adw.ActionRow();
+
+        const addLayoutBox = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            spacing: 6,
+            margin_top: 6,
+            margin_bottom: 6,
+        });
+
+        this._layoutIdEntry = new Gtk.Entry({
+            placeholder_text: _('Layout ID (e.g., en, de, ua)'),
+            hexpand: true,
+        });
+
+        this._symbolEntry = new Gtk.Entry({
+            placeholder_text: _('Symbols (e.g., 🇬🇧, EN, ⚡)'),
+            hexpand: true,
+        });
+
+        const addButton = new Gtk.Button({
+            label: _('Add'),
+            css_classes: ['suggested-action'],
+        });
+        addButton.connect('clicked', () => this._addCustomSymbol());
+
+        addLayoutBox.append(this._layoutIdEntry);
+        addLayoutBox.append(this._symbolEntry);
+        addLayoutBox.append(addButton);
+        addLayoutRow.add_suffix(addLayoutBox);
+        group.add(addLayoutRow);
+
+        this._customSymbolsList = new Gtk.ListBox({
+            selection_mode: Gtk.SelectionMode.NONE,
+            css_classes: ['boxed-list'],
+        });
+        group.add(this._customSymbolsList);
+
+        this._loadCustomSymbols();
+        this._settings.connect('changed::custom-layout-symbols', () => this._loadCustomSymbols());
+    }
+
+    _addCustomSymbol() {
+        const layoutId = this._layoutIdEntry.get_text().trim();
+        const symbol = this._symbolEntry.get_text().trim();
+
+        if (!layoutId || !symbol)
+            return;
+
+        try {
+            const currentCustomSymbols = this._settings.get_value('custom-layout-symbols').deep_unpack();
+            currentCustomSymbols[layoutId] = symbol;
+
+            const variant = new GLib.Variant('a{ss}', currentCustomSymbols);
+            this._settings.set_value('custom-layout-symbols', variant);
+
+            this._layoutIdEntry.set_text('');
+            this._symbolEntry.set_text('');
+        } catch (e) {
+            console.error('Error adding custom symbol:', e);
+        }
+    }
+
+    _loadCustomSymbols() {
+        let child = this._customSymbolsList.get_first_child();
+        while (child) {
+            const next = child.get_next_sibling();
+            this._customSymbolsList.remove(child);
+            child = next;
+        }
+
+        try {
+            const customSymbols = this._settings.get_value('custom-layout-symbols').deep_unpack();
+            for (const [layoutId, symbol] of Object.entries(customSymbols))
+                this._createCustomSymbolRow(layoutId, symbol);
+        } catch (e) {
+            console.error('Error loading custom symbols:', e);
+        }
+    }
+
+    _createCustomSymbolRow(layoutId, symbol) {
+        const row = new Adw.ActionRow({
+            title: symbol,
+            subtitle: `Layout: ${layoutId}`,
+        });
+
+        const deleteButton = new Gtk.Button({
+            icon_name: 'user-trash-symbolic',
+            css_classes: ['destructive-action'],
+            valign: Gtk.Align.CENTER,
+        });
+        deleteButton.connect('clicked', () => this._removeCustomSymbol(layoutId));
+
+        row.add_suffix(deleteButton);
+        this._customSymbolsList.append(row);
+    }
+
+    _removeCustomSymbol(layoutId) {
+        try {
+            const currentCustomSymbols = this._settings.get_value('custom-layout-symbols').deep_unpack();
+            delete currentCustomSymbols[layoutId];
+
+            const variant = new GLib.Variant('a{ss}', currentCustomSymbols);
+            this._settings.set_value('custom-layout-symbols', variant);
+        } catch (e) {
+            console.error('Error removing custom symbol:', e);
+        }
     }
 });
 
@@ -161,4 +281,5 @@ export const AboutPage = GObject.registerClass(class PraporAboutPage extends Adw
         this.add(gnuSoftwareGroup);
     }
 });
+
 

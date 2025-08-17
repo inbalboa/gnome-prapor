@@ -8,7 +8,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
-import {FlagMapper} from './flags.js';
+import {FlagMapper, extractLayoutId} from './flags.js';
 import {LayoutMenuItem} from './layoutItem.js';
 
 const APP_NAME = 'Prapor';
@@ -33,7 +33,7 @@ const PraporIndicator = GObject.registerClass(
             this._settings = extension.getSettings();
             this._keyboard = Main.panel.statusArea.keyboard;
             this._keyboardVisibilityChangedId = null;
-            this._flagMapper = new FlagMapper();
+            this._flagMapper = new FlagMapper(this._getCustomSymbols());
 
             this._flagLabel = new St.Label({
                 text: this._flagMapper.getDefault(),
@@ -59,7 +59,8 @@ const PraporIndicator = GObject.registerClass(
 
             this._switchSystemIndicator();
 
-            this._settingsChangedId = this._settings.connect('changed', () => this._switchSystemIndicator());
+            this._systemIndicatorSettingsChangedId = this._settings.connect('changed::hide-system-indicator', () => this._switchSystemIndicator());
+            this._customSymbolsSettingsChangedId = this._settings.connect('changed::custom-layout-symbols', () => this._onCustomSymbolsChanged());
         }
 
         _buildMenu() {
@@ -77,6 +78,18 @@ const PraporIndicator = GObject.registerClass(
             const settingsItem = new PopupMenu.PopupMenuItem(_('Keyboard Settings'));
             settingsItem.connect('activate', () => this._openKeyboardSettings());
             this.menu.addMenuItem(settingsItem);
+        }
+
+        _getCustomSymbols() {
+            const customSymbols = new Map();
+            try {
+                const customSymbolsDict = this._settings.get_value('custom-layout-symbols').deep_unpack();
+                for (const [layoutId, symbol] of Object.entries(customSymbolsDict))
+                    customSymbols.set(layoutId, symbol);
+            } catch (e) {
+                logPrapor('Error loading custom symbols:', e);
+            }
+            return customSymbols;
         }
 
         _refillLayoutItems() {
@@ -127,6 +140,12 @@ const PraporIndicator = GObject.registerClass(
             this._updateLayoutItems();
         }
 
+        _onCustomSymbolsChanged() {
+            this._flagMapper.customSymbols = this._getCustomSymbols();
+            this._layoutItems.length = 0;
+            this._updateLayoutItems();
+        }
+
         _switchSystemIndicator() {
             if (!this._settings) {
                 logPrapor('System indicator switching error:', 'Settings not available');
@@ -152,11 +171,18 @@ const PraporIndicator = GObject.registerClass(
         }
 
         _showKeyboardLayout() {
+            const currentSourceId = this._inputSourceManager.currentSource?.id;
+            const currentLayoutId = extractLayoutId(currentSourceId);
             try {
-                Gio.Subprocess.new([KEYBOARD_VIEWER_CMD], Gio.SubprocessFlags.NONE);
+                Gio.Subprocess.new([KEYBOARD_VIEWER_CMD, currentLayoutId], Gio.SubprocessFlags.NONE);
             } catch (e) {
-                logPrapor('Could not open keyboard layout viewer:', e);
-                notifyPrapor(_(`No keyboard layout viewer found. Install '${KEYBOARD_VIEWER_CMD}'.`));
+                logPrapor(`Could not open keyboard layout viewer for layout ${currentLayoutId}:`, e);
+                try {
+                    Gio.Subprocess.new([KEYBOARD_VIEWER_CMD], Gio.SubprocessFlags.NONE);
+                } catch (e) {
+                    logPrapor('Could not open keyboard layout viewer :', e);
+                    notifyPrapor(_(`No keyboard layout viewer found. Install '${KEYBOARD_VIEWER_CMD}'.`));
+                }
             }
         }
 
@@ -174,13 +200,21 @@ const PraporIndicator = GObject.registerClass(
                 this._inputSourceManager.disconnect(this._inputSourceChangedId);
                 this._inputSourceChangedId = null;
             }
-            if (this._settingsChangedId) {
-                this._settings.disconnect(this._settingsChangedId);
-                this._settingsChangedId = null;
+            if (this._systemIndicatorSettingsChangedId) {
+                this._settings.disconnect(this._systemIndicatorSettingsChangedId);
+                this._systemIndicatorSettingsChangedId = null;
+            }
+            if (this._customSymbolsSettingsChangedId) {
+                this._settings.disconnect(this._customSymbolsSettingsChangedId);
+                this._customSymbolsSettingsChangedId = null;
             }
             if (this._keyboardVisibilityChangedId) {
                 this._keyboard.disconnect(this._keyboardVisibilityChangedId);
                 this._keyboardVisibilityChangedId = null;
+            }
+            if (this._flagMapper) {
+                this._flagMapper.destroy();
+                this._flagMapper = null;
             }
             if (this._keyboard) {
                 this._keyboard.show();

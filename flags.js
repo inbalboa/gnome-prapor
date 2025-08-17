@@ -164,9 +164,25 @@ const IBUS_MAPPING = {
     'm17n:as:itrans': 'in',
 };
 
+export function extractLayoutId(sourceId) {
+    // Handle different input source ID formats
+    // Examples: "xkb:us::eng", "xkb:de::ger", "ibus:libpinyin"
+
+    if (sourceId.startsWith('xkb:')) {
+        const parts = sourceId.split(':');
+        return parts[1] || 'us';
+    }
+    if (sourceId.startsWith('ibus:')) {
+        const engine = sourceId.replace('ibus:', '');
+        return IBUS_MAPPING[engine] || 'default';
+    }
+    return sourceId;
+}
+
 export class FlagMapper {
-    constructor() {
+    constructor(customSymbols) {
         this._cache = new Map();
+        this._customSymbols = customSymbols;
     }
 
     getFlagBySourceId(sourceId) {
@@ -183,27 +199,27 @@ export class FlagMapper {
     }
 
     _computeFlag(sourceId) {
-        let layoutId = this._extractLayoutId(sourceId).toLowerCase();
+        let layoutId = extractLayoutId(sourceId).toLowerCase();
 
         if (LAYOUT_ID_MAPPINGS[layoutId])
             layoutId = LAYOUT_ID_MAPPINGS[layoutId];
 
+        if (this._customSymbols.has(layoutId))
+            return this._customSymbols.get(layoutId);
+
         return LAYOUT_FLAGS[layoutId] || LAYOUT_FLAGS.default;
     }
 
-    _extractLayoutId(sourceId) {
-        // Handle different input source ID formats
-        // Examples: "xkb:us::eng", "xkb:de::ger", "ibus:libpinyin"
+    set customSymbols(newCustomSymbols) {
+        this._customSymbols = newCustomSymbols;
+        this._cache.clear();
+    }
 
-        if (sourceId.startsWith('xkb:')) {
-            const parts = sourceId.split(':');
-            return parts[1] || 'us';
-        }
-        if (sourceId.startsWith('ibus:')) {
-            const engine = sourceId.replace('ibus:', '');
-            return IBUS_MAPPING[engine] || 'default';
-        }
-        return sourceId;
+    destroy() {
+        this._cache.clear();
+        this._customSymbols.clear();
+        this._cache = null;
+        this._customSymbols = null;
     }
 }
 

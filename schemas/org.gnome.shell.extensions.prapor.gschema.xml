@@ -6,5 +6,10 @@
       <summary>Hide a system indicator </summary>
       <description>Hide a system keyboard layout indicator in the status bar</description>
     </key>
+    <key name="custom-layout-symbols" type="a{ss}">
+      <default>{}</default>
+      <summary>Custom symbols for specific layouts</summary>
+      <description>Map of layout IDs to custom symbols/flags</description>
+    </key>
   </schema>
 </schemalist>
