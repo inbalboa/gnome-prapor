@@ -179,8 +179,8 @@ const PraporIndicator = GObject.registerClass(
                 logPrapor(`Could not open keyboard layout viewer for layout ${currentLayoutId}:`, e);
                 try {
                     Gio.Subprocess.new([KEYBOARD_VIEWER_CMD], Gio.SubprocessFlags.NONE);
-                } catch (e) {
-                    logPrapor('Could not open keyboard layout viewer :', e);
+                } catch (ee) {
+                    logPrapor('Could not open keyboard layout viewer :', ee);
                     notifyPrapor(_(`No keyboard layout viewer found. Install '${KEYBOARD_VIEWER_CMD}'.`));
                 }
             }
@@ -216,9 +216,9 @@ const PraporIndicator = GObject.registerClass(
                 this._flagMapper.destroy();
                 this._flagMapper = null;
             }
-            if (this._keyboard) {
+            if (this._keyboard)
                 this._keyboard.show();
-            }
+
             super.destroy();
         }
     }
@@ -237,4 +237,3 @@ export default class PraporExtension extends Extension {
         }
     }
 }
-

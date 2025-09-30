@@ -189,7 +189,7 @@ export const AboutPage = GObject.registerClass(class PraporAboutPage extends Adw
         });
 
         const praporLabel = new Gtk.Label({
-            label: `<span size="large"><b>Prapor</b></span>`,
+            label: '<span size="large"><b>Prapor</b></span>',
             use_markup: true,
             vexpand: true,
             valign: Gtk.Align.FILL,

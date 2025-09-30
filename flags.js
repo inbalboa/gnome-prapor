@@ -222,4 +222,3 @@ export class FlagMapper {
         this._customSymbols = null;
     }
 }
-
