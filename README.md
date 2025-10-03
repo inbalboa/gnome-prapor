@@ -70,7 +70,7 @@ You can hide the system keyboard layout indicator (with letters) in the extensio
 
 ## License
 
-This project is licensed under the GPL-3.0 License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU General Public License v3.0 (GPLv3) or later - see the [LICENSE](LICENSE) file for details.
 
 ## Changelog
 
