@@ -132,7 +132,7 @@ const PraporIndicator = GObject.registerClass(
 
             if (layoutsChanged) {
                 this._layoutSection.removeAll();
-                this._layoutItems.forEach(i => this._layoutSection.addMenuItem(i));
+                this._layoutItems.forEach(i => { this._layoutSection.addMenuItem(i) });
             }
         }
 
