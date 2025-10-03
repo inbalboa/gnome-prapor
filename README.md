@@ -74,6 +74,9 @@ This project is licensed under the GNU General Public License v3.0 (GPLv3) or la
 
 ## Changelog
 
+### Version 1.1.0
+- Ability to assign custom symbols to the layout
+
 ### Version 1.0.0
 - Initial release
 - Support for 60+ keyboard layouts

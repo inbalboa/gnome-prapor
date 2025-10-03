@@ -3,9 +3,13 @@ import Gdk from 'gi://Gdk';
 import Gtk from 'gi://Gtk';
 import GObject from 'gi://GObject';
 import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
+
 
 import * as Config from 'resource:///org/gnome/Shell/Extensions/js/misc/config.js';
 import {ExtensionPreferences, gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+
+import {extractLayoutId} from './flags.js';
 
 export default class PraporMenuPrefs extends ExtensionPreferences {
     fillPreferencesWindow(window) {
@@ -54,36 +58,26 @@ export const SettingsPage = GObject.registerClass(class PraporSettingsPage exten
     }
 
     _createCustomSymbolsUI(group) {
-        const addLayoutRow = new Adw.ActionRow();
+        this._inputSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.input-sources' });
 
-        const addLayoutBox = new Gtk.Box({
-            orientation: Gtk.Orientation.HORIZONTAL,
-            spacing: 6,
-            margin_top: 6,
-            margin_bottom: 6,
-        });
-
-        this._layoutIdEntry = new Gtk.Entry({
-            placeholder_text: _('Layout ID (e.g., en, de, ua)'),
-            hexpand: true,
-        });
-
-        this._symbolEntry = new Gtk.Entry({
-            placeholder_text: _('Symbols (e.g., 🇬🇧, EN, ⚡)'),
-            hexpand: true,
+        this._symbolEntry = new Adw.EntryRow({
+            title: _('Custom symbol'),
         });
 
         const addButton = new Gtk.Button({
-            label: _('Add'),
+            icon_name: 'list-add-symbolic',
             css_classes: ['suggested-action'],
+            valign: Gtk.Align.CENTER,
         });
+        addButton.set_tooltip_text(_('Add'));
         addButton.connect('clicked', () => this._addCustomSymbol());
 
-        addLayoutBox.append(this._layoutIdEntry);
-        addLayoutBox.append(this._symbolEntry);
-        addLayoutBox.append(addButton);
-        addLayoutRow.add_suffix(addLayoutBox);
-        group.add(addLayoutRow);
+        this._symbolEntry.add_suffix(addButton);
+        group.add(this._symbolEntry);
+
+        const spacer = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL });
+        spacer.set_size_request(-1, 12);
+        group.add(spacer);
 
         this._customSymbolsList = new Gtk.ListBox({
             selection_mode: Gtk.SelectionMode.NONE,
@@ -95,25 +89,109 @@ export const SettingsPage = GObject.registerClass(class PraporSettingsPage exten
         this._settings.connect('changed::custom-layout-symbols', () => this._loadCustomSymbols());
     }
 
-    _addCustomSymbol() {
-        const layoutId = this._layoutIdEntry.get_text().trim();
-        const symbol = this._symbolEntry.get_text().trim();
+    _showLayoutPickerDialog(onPicked) {
+        try {
+            const sources = this._inputSettings.get_value('sources').deep_unpack();
 
-        if (!layoutId || !symbol)
+            const layoutIds = [];
+            for (const [_type, sourceId] of sources) {
+                const id = extractLayoutId(sourceId ?? '');
+                if (id)
+                    layoutIds.push(id);
+            }
+
+            if (layoutIds.length === 0) {
+                return;
+            }
+
+            const parent = this.get_root();
+            const dialog = new Gtk.Dialog({
+                transient_for: parent instanceof Gtk.Window ? parent : null,
+                modal: true,
+                title: _('Choose layout'),
+            });
+
+            dialog.add_button(_('Cancel'), Gtk.ResponseType.CANCEL);
+            dialog.add_button(_('Add'), Gtk.ResponseType.OK);
+
+            const box = dialog.get_content_area();
+            box.set_spacing(6);
+
+            const listBox = new Gtk.ListBox({
+                selection_mode: Gtk.SelectionMode.SINGLE,
+                css_classes: ['boxed-list'],
+                activate_on_single_click: true,
+            });
+
+            let preselectRow = null;
+            layoutIds.forEach((id, idx) => {
+                const row = new Adw.ActionRow({
+                    title: id,
+                    activatable: true,
+                });
+                row._layoutId = id;
+                listBox.append(row);
+                if (idx === 0)
+                    preselectRow = row;
+            });
+
+            listBox.connect('row-activated', (_lb, row) => {
+                listBox.select_row(row);
+            });
+
+            box.append(listBox);
+            listBox.select_row(preselectRow);
+
+            dialog.connect('response', (_d, response) => {
+                if (response === Gtk.ResponseType.OK) {
+                    const selected = listBox.get_selected_row();
+                    if (selected)
+                        onPicked(selected._layoutId);
+                }
+                dialog.destroy();
+            });
+
+            dialog.present();
+        } catch (e) {
+            console.error('Failed to open layout picker dialog:', e);
+        }
+    }
+
+    _getCurrentLayoutId() {
+        try {
+            const inputSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.input-sources' });
+            const sources = inputSettings.get_value('sources').deep_unpack();
+            const currentIndex = inputSettings.get_uint('current');
+            const current = sources[currentIndex] ?? sources[0];
+            if (!current)
+                return '';
+
+            const [_type, sourceId] = current;
+            return extractLayoutId(sourceId ?? '');
+        } catch (e) {
+            console.error('Failed to get current layout from input-sources:', e);
+            return '';
+        }
+    }
+
+    _addCustomSymbol() {
+        const symbol = this._symbolEntry.get_text().trim();
+        if (!symbol)
             return;
 
-        try {
-            const currentCustomSymbols = this._settings.get_value('custom-layout-symbols').deep_unpack();
-            currentCustomSymbols[layoutId] = symbol;
+        this._showLayoutPickerDialog((layoutId) => {
+            try {
+                const currentCustomSymbols = this._settings.get_value('custom-layout-symbols').deep_unpack();
+                currentCustomSymbols[layoutId] = symbol;
 
-            const variant = new GLib.Variant('a{ss}', currentCustomSymbols);
-            this._settings.set_value('custom-layout-symbols', variant);
+                const variant = new GLib.Variant('a{ss}', currentCustomSymbols);
+                this._settings.set_value('custom-layout-symbols', variant);
 
-            this._layoutIdEntry.set_text('');
-            this._symbolEntry.set_text('');
-        } catch (e) {
-            console.error('Error adding custom symbol:', e);
-        }
+                this._symbolEntry.set_text('');
+            } catch (e) {
+                console.error('Error adding custom symbol:', e);
+            }
+        });
     }
 
     _loadCustomSymbols() {
@@ -259,8 +337,8 @@ export const AboutPage = GObject.registerClass(class PraporAboutPage extends Adw
         this.add(extensionInfoGroup);
         // -----------------------------------------------------------------------
 
-        const licenseLabel = _('This project is licensed under the GPL-3.0 License.');
-        const urlLabel = _('See the %sLicense%s for details.').format('<a href="https://www.gnu.org/licenses/gpl.txt">', '</a>');
+        const licenseLabel = _('Licensed under the GNU General Public License v3.0 or later.');
+        const urlLabel = _('© 2025 Serhiy Shliapuhin. See the %sLICENSE%s for details.').format('<a href="https://www.gnu.org/licenses/gpl.txt">', '</a>');
 
         const gnuSoftwareGroup = new Adw.PreferencesGroup();
         const gnuSofwareLabel = new Gtk.Label({
