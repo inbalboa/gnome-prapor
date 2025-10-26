@@ -157,23 +157,6 @@ export const SettingsPage = GObject.registerClass(class PraporSettingsPage exten
         }
     }
 
-    _getCurrentLayoutId() {
-        try {
-            const inputSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.input-sources' });
-            const sources = inputSettings.get_value('sources').deep_unpack();
-            const currentIndex = inputSettings.get_uint('current');
-            const current = sources[currentIndex] ?? sources[0];
-            if (!current)
-                return '';
-
-            const [_type, sourceId] = current;
-            return extractLayoutId(sourceId ?? '');
-        } catch (e) {
-            console.error('Failed to get current layout from input-sources:', e);
-            return '';
-        }
-    }
-
     _addCustomSymbol() {
         const symbol = this._symbolEntry.get_text().trim();
         if (!symbol)
