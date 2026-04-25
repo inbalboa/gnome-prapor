@@ -40,6 +40,7 @@ const PraporIndicator = GObject.registerClass(
                 style_class: 'prapor-label',
                 y_align: Clutter.ActorAlign.CENTER,
             });
+            this._flagLabel.set_style('padding-right: 0px; padding-left: 0px;');
             this.add_child(this._flagLabel);
 
             this._inputSourceManager = Main.inputMethod._inputSourceManager;
