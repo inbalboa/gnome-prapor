@@ -9,9 +9,6 @@
   "settings-schema": "org.gnome.shell.extensions.prapor",
   "version": 1,
   "version-name": "1.1.1",
-  "shell-version": [
-    "48",
-    "49"
-  ],
+  "shell-version": ["48", "49", "50"],
   "url": "https://github.com/inbalboa/gnome-prapor/"
 }
