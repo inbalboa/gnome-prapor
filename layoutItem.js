@@ -3,8 +3,9 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 
-export const LayoutMenuItem = GObject.registerClass(
-class LayoutMenuItem extends PopupMenu.PopupBaseMenuItem {
+export const LayoutMenuItem = GObject.registerClass({
+    GTypeName: 'LayoutMenuItem',
+}, class extends PopupMenu.PopupBaseMenuItem {
     _init(displayName, flagSmb, sourceId, clickCallback) {
         super._init({
             reactive: true,

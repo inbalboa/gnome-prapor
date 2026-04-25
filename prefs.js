@@ -5,7 +5,6 @@ import GObject from 'gi://GObject';
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 
-
 import * as Config from 'resource:///org/gnome/Shell/Extensions/js/misc/config.js';
 import {ExtensionPreferences, gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
@@ -58,7 +57,7 @@ export const SettingsPage = GObject.registerClass(class PraporSettingsPage exten
     }
 
     _createCustomSymbolsUI(group) {
-        this._inputSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.input-sources' });
+        this._inputSettings = new Gio.Settings({schema_id: 'org.gnome.desktop.input-sources'});
 
         this._symbolEntry = new Adw.EntryRow({
             title: _('Custom symbol'),
@@ -75,7 +74,7 @@ export const SettingsPage = GObject.registerClass(class PraporSettingsPage exten
         this._symbolEntry.add_suffix(addButton);
         group.add(this._symbolEntry);
 
-        const spacer = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL });
+        const spacer = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL});
         spacer.set_size_request(-1, 12);
         group.add(spacer);
 
@@ -100,9 +99,9 @@ export const SettingsPage = GObject.registerClass(class PraporSettingsPage exten
                     layoutIds.push(id);
             }
 
-            if (layoutIds.length === 0) {
+            if (layoutIds.length === 0)
                 return;
-            }
+
 
             const parent = this.get_root();
             const dialog = new Gtk.Dialog({
@@ -162,7 +161,7 @@ export const SettingsPage = GObject.registerClass(class PraporSettingsPage exten
         if (!symbol)
             return;
 
-        this._showLayoutPickerDialog((layoutId) => {
+        this._showLayoutPickerDialog(layoutId => {
             try {
                 const currentCustomSymbols = this._settings.get_value('custom-layout-symbols').deep_unpack();
                 currentCustomSymbols[layoutId] = symbol;
@@ -342,5 +341,3 @@ export const AboutPage = GObject.registerClass(class PraporAboutPage extends Adw
         this.add(gnuSoftwareGroup);
     }
 });
-
-
