@@ -28,7 +28,7 @@ function notifyPrapor(message) {
 const PraporIndicator = GObject.registerClass(
     class extends PanelMenu.Button {
         _init(extension) {
-            super._init(0.0, 'PraporIndicator');
+            super._init(0.5, 'PraporIndicator');
 
             this._settings = extension.getSettings();
             this._keyboard = Main.panel.statusArea.keyboard;
