@@ -93,7 +93,7 @@ export const SettingsPage = GObject.registerClass(class PraporSettingsPage exten
             const sources = this._inputSettings.get_value('sources').deep_unpack();
 
             const layoutIds = [];
-            for (const [_type, sourceId] of sources) {
+            for (const [, sourceId] of sources) {
                 const id = extractLayoutId(sourceId ?? '');
                 if (id)
                     layoutIds.push(id);
