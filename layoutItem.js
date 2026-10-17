@@ -58,8 +58,7 @@ export const LayoutMenuItem = GObject.registerClass({
     }
 
     makeInactive() {
-        this.setOrnament(PopupMenu.Ornament.NONE);
-        this.setOrnament(PopupMenu.Ornament.RADIO);
+        this.setOrnament(PopupMenu.Ornament.NO_DOT);
     }
 
     destroy() {
