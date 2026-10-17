@@ -7,8 +7,8 @@
   },
   "gettext-domain": "prapor",
   "settings-schema": "org.gnome.shell.extensions.prapor",
-  "version": 5,
-  "version-name": "1.2.1",
-  "shell-version": ["48", "49", "50"],
+  "version": 6,
+  "version-name": "1.2.2",
+  "shell-version": ["48", "49", "50", "51"],
   "url": "https://github.com/inbalboa/gnome-prapor/"
 }
