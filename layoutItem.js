@@ -18,7 +18,6 @@ export const LayoutMenuItem = GObject.registerClass({
         this._sourceId = sourceId;
 
         const itemBox = new St.BoxLayout({
-            vertical: false,
             x_expand: true,
         });
 
